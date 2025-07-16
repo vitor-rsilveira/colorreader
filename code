@@ -1,0 +1,99 @@
+
+"""
+Created on Fri Jul  4 11:14:16 2025
+
+@author: Vitor Silveira
+"""
+
+url = "" 
+
+
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+import re
+from PIL import ImageColor
+import pandas as pd
+from datetime import datetime
+import os
+from google.colab import drive
+from google.colab import files
+from google.colab import data_table
+
+
+
+# Source code extraction
+
+page = urlopen(url)
+
+html_bytes = page.read()
+
+html = html_bytes.decode("utf-8")
+
+soup = BeautifulSoup(html, "html.parser")
+
+#
+
+## Reading palette title
+
+palette_title = soup.find_all('h1')
+
+for title in palette_title:
+    title_text = title.get_text(strip=True)
+
+## Reading names extraction
+
+list_reading = []
+
+all_h2 = soup.find_all('h2')
+
+
+for h2 in all_h2:
+    h2_text = h2.get_text(strip=True)
+    list_reading.append(h2_text)
+
+
+
+## HEX extraction
+
+hashtag_pattern = re.compile(r'^#')
+
+all_spans = soup.find_all('span')
+
+list_hex = []
+
+for span in all_spans:
+     span_text = span.get_text(strip=True)
+
+     if hashtag_pattern.match(span_text):
+        list_hex.append(span_text)
+
+
+
+## HEX to RGB conversion
+
+list_rgb = []
+
+for hex_color in list_hex:
+    rgb_tuple = ImageColor.getrgb(hex_color)
+    list_rgb.append(rgb_tuple)
+
+
+
+## Calculating "r"
+
+r_rgb_colors = []
+
+for R, G, B in list_rgb:
+    total_sum = R + G + B
+    if total_sum == 0:
+        r_rgb_colors.append((0.0, 0.0, 0.0))
+    else:
+        r_rgb_colors.append(R / total_sum)
+  
+
+# Adding lists to a data frame
+  
+data_rows = list(zip(list_reading, list_hex, list_rgb, r_rgb_colors))
+df = pd.DataFrame(data_rows, columns=['Reading', 'HEX number', 'RGB', 'r'])
+
+
